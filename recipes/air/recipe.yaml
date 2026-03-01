@@ -16,11 +16,12 @@ build:
       CARGO_PROFILE_RELEASE_STRIP: symbols
       CARGO_PROFILE_RELEASE_LTO: fat
     content:
-      - if: unix
+      - if: win
         then:
-          - cargo auditable install --no-track --locked --bins --all-features --root ${{ PREFIX }} --path crates/air
-        else:
+          - set CARGO_HOME=C:\.cargo # work around cargo/libgit2 Windows MAX_PATH (260 char) limitation, cf. https://github.com/libgit2/libgit2/blob/main/docs/win32-longpaths.md
           - cargo auditable install --no-track --locked --bins --all-features --root %LIBRARY_PREFIX% --path crates/air
+        else:
+          - cargo auditable install --no-track --locked --bins --all-features --root ${{ PREFIX }} --path crates/air
       - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
 
 requirements:
