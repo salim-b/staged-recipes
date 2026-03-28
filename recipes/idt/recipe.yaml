@@ -1,0 +1,70 @@
+context:
+  version: "0.1.20"
+
+package:
+  name: idt
+  version: ${{ version }}
+
+source:
+  url: https://github.com/sh-cho/idt/archive/refs/tags/${{ version }}.tar.gz
+  sha256: ca7d78731ba466ca34b67e66de2e81e6049d7fbf56b356c16b399c973d72d86c
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions $PREFIX/share/powershell/completions
+          - $PREFIX/bin/idt completions bash > $PREFIX/share/bash-completion/completions/idt
+          - $PREFIX/bin/idt completions fish > $PREFIX/share/fish/vendor_completions.d/idt.fish
+          - $PREFIX/bin/idt completions zsh > $PREFIX/share/zsh/site-functions/_idt
+          - $PREFIX/bin/idt completions powershell > $PREFIX/share/powershell/completions/idt.ps1
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - idt --help
+      - idt --version
+  - package_contents:
+      bin:
+        - idt
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/idt
+            - share/fish/vendor_completions.d/idt.fish
+            - share/zsh/site-functions/_idt
+            - share/powershell/completions/idt.ps1
+      strict: true
+
+about:
+  homepage: https://github.com/sh-cho/idt
+  summary: A fast, ergonomic CLI tool for working with various ID formats
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://sh-cho.github.io/idt
+  repository: https://github.com/sh-cho/idt
+
+extra:
+  recipe-maintainers:
+    - salim-b
