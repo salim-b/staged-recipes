@@ -21,7 +21,7 @@ build:
         - BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
         - go build -v -o $PREFIX/bin/modctl -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.GitVersion=v${{ version }} -X github.com/modelpack/modctl/pkg/version.GitCommit=${{ git_commit }} -X github.com/modelpack/modctl/pkg/version.BuildTime=${BUILD_TIME}"
       else:
-        - for /f "usebackq delims=" %%T in (`powershell -Command "Get-Date -AsUTC -Format yyyy-MM-ddTHH:mm:ssZ"`) do set BUILD_TIME=%%T
+        - for /f "usebackq delims=" %%T in (`powershell -Command "[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')"`) do set BUILD_TIME=%%T
         - go build -v -o %LIBRARY_BIN%\modctl.exe -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.GitVersion=v${{ version }} -X github.com/modelpack/modctl/pkg/version.GitCommit=${{ git_commit }} -X github.com/modelpack/modctl/pkg/version.BuildTime=%BUILD_TIME%"
     - if: unix
       then:
