@@ -1,5 +1,6 @@
 context:
   version: "0.1.2"
+  git_commit: "06ac8b1"
 
 package:
   name: modctl
@@ -16,8 +17,10 @@ build:
     - cd src
     - go-licenses save . --save_path ../library_licenses
     - if: unix
-      then: go build -v -o $PREFIX/bin/modctl -ldflags="-s -w"
-      else: go build -v -o %LIBRARY_BIN%\modctl.exe -ldflags="-s"
+      then:
+        - BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        - go build -v -o $PREFIX/bin/modctl -ldflags="-s -w -X github.com/modelpack/modctl/pkg/version.GitVersion=v${{ version }} -X github.com/modelpack/modctl/pkg/version.GitCommit=${{ git_commit }} -X github.com/modelpack/modctl/pkg/version.BuildTime=${BUILD_TIME}"
+      else: go build -v -o %LIBRARY_BIN%\modctl.exe -ldflags="-s -X github.com/modelpack/modctl/pkg/version.GitVersion=v${{ version }} -X github.com/modelpack/modctl/pkg/version.GitCommit=${{ git_commit }}"
     - if: unix
       then:
         - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
