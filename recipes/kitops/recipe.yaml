@@ -1,0 +1,63 @@
+context:
+  version: "1.11.0"
+
+package:
+  name: kitops
+  version: ${{ version }}
+
+source:
+  url: https://github.com/kitops-ml/kitops/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 58c12c8db7c08ea64b094fdaf0ce11cee301f21091830260b260c4c96c770c69
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/kit -ldflags="-s -w -X github.com/kitops-ml/kitops/pkg/lib/constants.Version=${{ version }}"
+      else: go build -v -o %LIBRARY_BIN%\kit.exe -ldflags="-s -w -X github.com/kitops-ml/kitops/pkg/lib/constants.Version=${{ version }}"
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+        - $PREFIX/bin/kit completion zsh > $PREFIX/share/zsh/site-functions/_kit
+        - $PREFIX/bin/kit completion bash > $PREFIX/share/bash-completion/completions/kit
+        - $PREFIX/bin/kit completion fish > $PREFIX/share/fish/vendor_completions.d/kit.fish
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - kit --help
+      - kit version
+  - package_contents:
+      bin:
+        - kit
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/kit
+            - share/fish/vendor_completions.d/kit.fish
+            - share/zsh/site-functions/_kit
+      strict: true
+
+about:
+  homepage: https://kitops.ml
+  summary: An open source MLOps tool for packaging, versioning, and sharing ML models
+  description: |
+    KitOps is an open source MLOps tool that enables data scientists,
+    engineers, and operations teams to package, version, share, and
+    deploy AI/ML models and their associated artifacts using OCI standards.
+  license: Apache-2.0
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/kitops-ml/kitops
+
+extra:
+  recipe-maintainers:
+    - salim-b
