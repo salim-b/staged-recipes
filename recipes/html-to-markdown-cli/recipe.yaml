@@ -1,0 +1,71 @@
+context:
+  version: "3.0.0"
+
+package:
+  name: html-to-markdown-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/kreuzberg-dev/html-to-markdown/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 95d19b126a5469ef453bbaecb123d53be008cd554a7a6c76bd100c2a7be54fdd
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --no-track --bins --root ${{ PREFIX }} --path crates/html-to-markdown-cli
+        else:
+          - cargo auditable install --no-track --bins --root %LIBRARY_PREFIX% --path crates/html-to-markdown-cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/html-to-markdown --generate-completion zsh > $PREFIX/share/zsh/site-functions/_html-to-markdown
+          - $PREFIX/bin/html-to-markdown --generate-completion bash > $PREFIX/share/bash-completion/completions/html-to-markdown
+          - $PREFIX/bin/html-to-markdown --generate-completion fish > $PREFIX/share/fish/vendor_completions.d/html-to-markdown.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - html-to-markdown --help
+      - html-to-markdown --version
+  - package_contents:
+      bin:
+        - html-to-markdown
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/html-to-markdown
+            - share/fish/vendor_completions.d/html-to-markdown.fish
+            - share/zsh/site-functions/_html-to-markdown
+      strict: true
+
+about:
+  homepage: https://github.com/kreuzberg-dev/html-to-markdown
+  summary: A fast, powerful HTML to Markdown converter
+  description: |
+    Command-line interface for html-to-markdown - a high-performance
+    HTML to Markdown converter with comprehensive customization options.
+    Uses the html5ever parser for standards-compliant HTML processing.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://docs.rs/html-to-markdown-rs
+  repository: https://github.com/kreuzberg-dev/html-to-markdown
+
+extra:
+  recipe-maintainers:
+    - salim-b
