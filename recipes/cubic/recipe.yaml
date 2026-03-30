@@ -1,0 +1,72 @@
+context:
+  version: "0.20.0"
+
+package:
+  name: cubic
+  version: ${{ version }}
+
+source:
+  url: https://github.com/cubic-vm/cubic/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: e56d813812a9a5acf1387d1e3df58c571762750603eb0d94586eb4c3e39c6b8f
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/cubic completions zsh > $PREFIX/share/zsh/site-functions/_cubic
+          - $PREFIX/bin/cubic completions bash > $PREFIX/share/bash-completion/completions/cubic
+          - $PREFIX/bin/cubic completions fish > $PREFIX/share/fish/vendor_completions.d/cubic.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - cubic --help
+      - cubic --version
+  - package_contents:
+      bin:
+        - cubic
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/cubic
+            - share/fish/vendor_completions.d/cubic.fish
+            - share/zsh/site-functions/_cubic
+      strict: true
+
+about:
+  homepage: https://cubic-vm.org
+  summary: A lightweight command line manager for virtual machines
+  description: |
+    Cubic is a lightweight command line manager for virtual machines. It has a
+    simple, daemonless and rootless design. All Cubic virtual machines run isolated
+    in the user context. Cubic is built on top of QEMU, KVM and cloud-init.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://cubic-vm.org
+  repository: https://github.com/cubic-vm/cubic
+
+extra:
+  recipe-maintainers:
+    - salim-b
