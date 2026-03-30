@@ -1,0 +1,63 @@
+context:
+  version: "0.0.65"
+
+package:
+  name: iwe
+  version: ${{ version }}
+
+source:
+  url: https://github.com/iwe-org/iwe/archive/refs/tags/iwe-v${{ version }}.tar.gz
+  sha256: 436eb146171be7e70c3108995ef58f6d81b94f8d9d7528359d81d91a86a103af
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path ./crates/iwe
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path ./crates/iwes
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path ./crates/iwe
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path ./crates/iwes
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - iwe --help
+      - iwe --version
+  - package_contents:
+      bin:
+        - iwe
+        - iwes
+      strict: true
+
+about:
+  homepage: https://iwe.org
+  summary: IWE - Integrated Working Environment for humans and AI agents
+  description: |
+    IWE (Integrated Working Environment) is a knowledge graph system
+    that serves as a "second brain" for humans and AI agents. It organizes
+    notes hierarchically and makes them accessible through CLI tools and
+    LSP for editor integration (VS Code, Neovim, Zed, Helix).
+  license: Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - THIRDPARTY.yml
+  documentation: https://iwe.org
+  repository: https://github.com/iwe-org/iwe
+
+extra:
+  recipe-maintainers:
+    - salim-b
