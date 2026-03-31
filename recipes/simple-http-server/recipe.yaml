@@ -1,0 +1,60 @@
+context:
+  version: "0.8.0"
+
+package:
+  name: simple-http-server
+  version: ${{ version }}
+
+source:
+  url: https://github.com/TheWaWaR/simple-http-server/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b60965e0b0cd652bcb734185e6d8395cd4c1326305b190cba6ba0d7819f38af2
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - simple-http-server --help
+  - script:
+      - simple-http-server --version
+  - package_contents:
+      bin:
+        - simple-http-server
+      strict: true
+
+about:
+  homepage: https://github.com/TheWaWaR/simple-http-server
+  summary: Simple HTTP(s) server in Rust
+  description: |
+    A simple HTTP(s) server for static files, with upload and download support,
+    written in Rust. Supports features like CORS, gzip/deflate compression,
+    HTTP Basic Auth, HTTPS/TLS, directory listing, and more.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://github.com/TheWaWaR/simple-http-server
+  repository: https://github.com/TheWaWaR/simple-http-server
+
+extra:
+  recipe-maintainers:
+    - salim-b
