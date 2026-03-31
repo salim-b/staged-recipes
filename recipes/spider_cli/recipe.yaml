@@ -1,0 +1,61 @@
+context:
+  version: "2.48.4"
+
+package:
+  name: spider_cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/spider-rs/spider/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 0a6bc8179b77e6d696e285ee542e91b74280991f99bc7d74e23d08668b259c6e
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path spider_cli
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path spider_cli
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - if: unix
+      then: pkg-config
+  host:
+    - openssl
+
+tests:
+  - script:
+      - spider --help
+      - spider --version
+  - package_contents:
+      bin:
+        - spider
+      strict: true
+
+about:
+  homepage: https://github.com/spider-rs/spider
+  summary: The fastest web crawler CLI written in Rust.
+  description: |
+    The fastest web crawler CLI written in Rust.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  documentation: https://docs.rs/spider
+  repository: https://github.com/spider-rs/spider
+
+extra:
+  recipe-maintainers:
+    - salim-b
