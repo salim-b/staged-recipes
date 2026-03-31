@@ -1,0 +1,70 @@
+context:
+  version: "2026.3.8"
+
+package:
+  name: shh
+  version: ${{ version }}
+
+source:
+  url: https://github.com/desbma/shh/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2d294e583ccc742095cc211080fb1c4c8b095dd4b30b98d116d36acbb4b5e1b6
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --features generate-extras --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --features generate-extras --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - if: unix
+        then:
+          - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+          - $PREFIX/bin/shh gen-shell-completions -s zsh > $PREFIX/share/zsh/site-functions/_shh
+          - $PREFIX/bin/shh gen-shell-completions -s bash > $PREFIX/share/bash-completion/completions/shh
+          - $PREFIX/bin/shh gen-shell-completions -s fish > $PREFIX/share/fish/vendor_completions.d/shh.fish
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script: shh --help
+  - script: shh --version
+  - package_contents:
+      bin:
+        - shh
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/shh
+            - share/fish/vendor_completions.d/shh.fish
+            - share/zsh/site-functions/_shh
+      strict: true
+
+about:
+  homepage: https://github.com/desbma/shh
+  summary: Automatic systemd service hardening guided by strace profiling
+  description: |
+    SHH can generate an optimal set of hardening options for systemd services.
+    It profiles service behavior using strace and automatically generates
+    appropriate systemd security options, enabling security hardening without
+    breaking services due to overly restrictive sandboxing.
+  license: GPL-3.0-only
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/desbma/shh
+
+extra:
+  recipe-maintainers:
+    - salim-b
