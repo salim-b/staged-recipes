@@ -1,0 +1,66 @@
+context:
+  version: "1.15.0"
+
+package:
+  name: rbw
+  version: ${{ version }}
+
+source:
+  url: https://github.com/doy/rbw/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 660cfa4c727711665bef060046c28dd3924ca1e490fdc058d90d35372b2d2cf6
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+      - mkdir -p $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d $PREFIX/share/zsh/site-functions
+      - $PREFIX/bin/rbw gen-completions bash > $PREFIX/share/bash-completion/completions/rbw
+      - $PREFIX/bin/rbw gen-completions fish > $PREFIX/share/fish/vendor_completions.d/rbw.fish
+      - $PREFIX/bin/rbw gen-completions zsh > $PREFIX/share/zsh/site-functions/_rbw
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - rbw --help
+      - rbw --version
+  - package_contents:
+      bin:
+        - rbw
+        - rbw-agent
+      files:
+        - share/bash-completion/completions/rbw
+        - share/fish/vendor_completions.d/rbw.fish
+        - share/zsh/site-functions/_rbw
+      strict: true
+
+about:
+  homepage: https://github.com/doy/rbw
+  summary: Unofficial Bitwarden CLI
+  description: |
+    rbw is an unofficial command line client for Bitwarden that maintains
+    a background agent to manage encryption keys, similar to ssh-agent or
+    gpg-agent. This avoids the need to repeatedly decrypt the vault for
+    each operation, providing a faster and more convenient experience.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  repository: https://github.com/doy/rbw
+
+extra:
+  recipe-maintainers:
+    - salim-b
