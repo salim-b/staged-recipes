@@ -1,0 +1,65 @@
+context:
+  version: "0.13.0"
+
+package:
+  name: gastown
+  version: ${{ version }}
+
+source:
+  url: https://github.com/gastownhall/gastown/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9309da26f05cdea79218a0842356905132404d0c67503d578b89f304e05db617
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save ./cmd/gt --save_path ../library_licenses
+    - if: unix
+      then: go build -v -o $PREFIX/bin/gt -ldflags="-s -w -X github.com/steveyegge/gastown/internal/cmd.Version=${{ version }}" ./cmd/gt
+      else: go build -v -o %LIBRARY_BIN%\gt.exe -ldflags="-s -X github.com/steveyegge/gastown/internal/cmd.Version=${{ version }}" ./cmd/gt
+    - if: unix
+      then:
+        - mkdir -p $PREFIX/share/zsh/site-functions $PREFIX/share/bash-completion/completions $PREFIX/share/fish/vendor_completions.d
+        - $PREFIX/bin/gt completion bash > $PREFIX/share/bash-completion/completions/gt
+        - $PREFIX/bin/gt completion zsh > $PREFIX/share/zsh/site-functions/_gt
+        - $PREFIX/bin/gt completion fish > $PREFIX/share/fish/vendor_completions.d/gt.fish
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - gt --help
+      - gt --version
+  - package_contents:
+      bin:
+        - gt
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/gt
+            - share/fish/vendor_completions.d/gt.fish
+            - share/zsh/site-functions/_gt
+      strict: true
+
+about:
+  homepage: https://github.com/gastownhall/gastown
+  summary: Multi-agent orchestration system for Claude Code, GitHub Copilot, and other AI agents with persistent work tracking
+  description: |
+    Gas Town is a workspace manager that lets you coordinate multiple AI coding
+    agents (Claude Code, GitHub Copilot, Codex, Gemini, and others) working on
+    different tasks. Instead of losing context when agents restart, Gas Town
+    persists work state in git-backed hooks, enabling reliable multi-agent
+    workflows.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/gastownhall/gastown
+
+extra:
+  recipe-maintainers:
+    - salim-b
