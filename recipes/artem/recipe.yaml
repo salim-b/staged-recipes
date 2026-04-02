@@ -29,6 +29,12 @@ build:
           - cp target/*/release/build/artem-*/out/artem.fish $PREFIX/share/fish/vendor_completions.d/artem.fish
           - cp target/*/release/build/artem-*/out/_artem $PREFIX/share/zsh/site-functions/_artem
           - cp target/*/release/build/artem-*/out/artem.1 $PREFIX/share/man/man1/artem.1
+        else:
+          - powershell -Command "New-Item -ItemType Directory -Force -Path '%LIBRARY_PREFIX%\share\bash-completion\completions', '%LIBRARY_PREFIX%\share\fish\vendor_completions.d', '%LIBRARY_PREFIX%\share\zsh\site-functions', '%LIBRARY_PREFIX%\share\man\man1' | Out-Null"
+          - powershell -Command "Copy-Item 'target\release\build\artem-*\out\artem.bash' '%LIBRARY_PREFIX%\share\bash-completion\completions\artem'"
+          - powershell -Command "Copy-Item 'target\release\build\artem-*\out\artem.fish' '%LIBRARY_PREFIX%\share\fish\vendor_completions.d\artem.fish'"
+          - powershell -Command "Copy-Item 'target\release\build\artem-*\out\_artem' '%LIBRARY_PREFIX%\share\zsh\site-functions\_artem'"
+          - powershell -Command "Copy-Item 'target\release\build\artem-*\out\artem.1' '%LIBRARY_PREFIX%\share\man\man1\artem.1'"
 
 requirements:
   build:
@@ -52,6 +58,11 @@ tests:
             - share/fish/vendor_completions.d/artem.fish
             - share/zsh/site-functions/_artem
             - share/man/man1/artem.1
+          else:
+            - Library/share/bash-completion/completions/artem
+            - Library/share/fish/vendor_completions.d/artem.fish
+            - Library/share/zsh/site-functions/_artem
+            - Library/share/man/man1/artem.1
       strict: true
 
 about:
