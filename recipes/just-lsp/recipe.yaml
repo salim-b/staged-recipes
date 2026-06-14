@@ -20,6 +20,7 @@ build:
         then:
           - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
         else:
+          - 'powershell -Command "Remove-Item vendor/tree-sitter-just-src; Copy-Item -Recurse vendor/tree-sitter-just/src vendor/tree-sitter-just-src"'
           - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
       - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
 
