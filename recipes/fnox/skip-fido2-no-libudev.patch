@@ -1,0 +1,80 @@
+--- a/crates/fnox-core/Cargo.toml
++++ b/crates/fnox-core/Cargo.toml
+@@ -69,7 +69,7 @@
+ 
+ # ctap-hid-fido2 → hidapi → libudev cannot be statically linked on musl,
+ # so the FIDO2 provider is excluded from musl builds.
+-[target.'cfg(not(target_env = "musl"))'.dependencies]
++[target.'cfg(all(not(target_env = "musl"), not(fnox_skip_fido2)))'.dependencies]
+ ctap-hid-fido2 = { workspace = true }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
+--- a/crates/fnox-core/src/providers/mod.rs
++++ b/crates/fnox-core/src/providers/mod.rs
+@@ -12,7 +12,7 @@
+ pub mod bitwarden;
+ pub mod bitwarden_sm;
+ pub mod doppler;
+-#[cfg(not(target_env = "musl"))]
++#[cfg(not(any(target_env = "musl", fnox_skip_fido2)))]
+ pub mod fido2;
+ pub mod foks;
+ pub mod gcp_kms;
+@@ -139,7 +139,7 @@
+     }
+     pub(super) mod providers_instantiate {
+         // Need to import provider modules for instantiation
+-        #[cfg(not(target_env = "musl"))]
++        #[cfg(not(any(target_env = "musl", fnox_skip_fido2)))]
+         use super::super::fido2;
+         use super::super::{
+             age, aws_kms, aws_ps, aws_sm, azure_kms, azure_sm, bitwarden, bitwarden_sm, doppler,
+--- a/crates/fnox-core/build/generate_providers.rs
++++ b/crates/fnox-core/build/generate_providers.rs
+@@ -167,13 +167,14 @@
+     // so the FIDO2 provider is excluded from musl builds. Keep this in sync
+     // with the cfg gates in src/providers/mod.rs and src/commands/provider/.
+     let is_musl = std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("musl");
++    let skip_fido2 = std::env::var("CARGO_CFG_FNOX_SKIP_FIDO2").is_ok();
+ 
+     for entry in fs::read_dir(&providers_dir)? {
+         let entry = entry?;
+         let path = entry.path();
+         if path.extension().is_some_and(|ext| ext == "toml") {
+             let name = path.file_stem().unwrap().to_string_lossy().to_string();
+-            if is_musl && name == "fido2" {
++            if (is_musl || skip_fido2) && name == "fido2" {
+                 continue;
+             }
+             let content = fs::read_to_string(&path)?;
+--- a/src/commands/provider/mod.rs
++++ b/src/commands/provider/mod.rs
+@@ -52,7 +52,7 @@
+     #[strum(serialize = "gcp-kms")]
+     GcpKms,
+     /// FIDO2 hmac-secret hardware-backed encryption
+-    #[cfg(not(target_env = "musl"))]
++    #[cfg(not(any(target_env = "musl", fnox_skip_fido2)))]
+     #[value(name = "fido2")]
+     Fido2,
+     /// Bitwarden Password Manager
+@@ -163,7 +163,7 @@
+                     .map(|stem| stem.to_string_lossy().into_owned())
+             })
+             // fido2 is excluded from musl builds — mirror build/generate_providers.rs.
+-            .filter(|name| !(cfg!(target_env = "musl") && name == "fido2"))
++            .filter(|name| !((cfg!(target_env = "musl") || cfg!(fnox_skip_fido2)) && name == "fido2"))
+             .map(|provider_type| normalize_provider_type_for_add(&provider_type))
+             .collect();
+ 
+--- a/src/commands/provider/add.rs
++++ b/src/commands/provider/add.rs
+@@ -166,7 +166,7 @@
+                 auth_command: None,
+                 daemon_cache: None,
+             },
+-            #[cfg(not(target_env = "musl"))]
++            #[cfg(not(any(target_env = "musl", fnox_skip_fido2)))]
+             ProviderType::Fido2 => {
+                 let provider_name = self.provider.clone();
+                 let (credential_id_hex, salt_hex, rp_id, _pin) =
