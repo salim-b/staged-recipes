@@ -34,9 +34,10 @@ build:
           - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
           - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
           # generate shell completions
-          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
-          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
-          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          # NOTE: dirs may already exist because the `usage` host dependency ships the same ones
+          - if not exist "%LIBRARY_PREFIX%\share\bash-completion\completions" mkdir "%LIBRARY_PREFIX%\share\bash-completion\completions"
+          - if not exist "%LIBRARY_PREFIX%\share\fish\vendor_completions.d" mkdir "%LIBRARY_PREFIX%\share\fish\vendor_completions.d"
+          - if not exist "%LIBRARY_PREFIX%\share\zsh\site-functions" mkdir "%LIBRARY_PREFIX%\share\zsh\site-functions"
           - '"%LIBRARY_BIN%"\fnox.exe completion bash > "%LIBRARY_PREFIX%"\share\bash-completion\completions\fnox'
           - '"%LIBRARY_BIN%"\fnox.exe completion fish > "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d\fnox.fish'
           - '"%LIBRARY_BIN%"\fnox.exe completion zsh  > "%LIBRARY_PREFIX%"\share\zsh\site-functions\_fnox'
