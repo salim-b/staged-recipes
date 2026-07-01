@@ -8,12 +8,6 @@ package:
 source:
   url: https://github.com/jdx/fnox/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 17fbd495ad626ecd2bc7eb85a632d5e6875a49a6effa7a7aa6fafb9359ae7640
-  patches:
-    # Exclude the FIDO2 provider from non-musl builds when fnox_skip_fido2 cfg is set.
-    # The FIDO2 provider depends on ctap-hid-fido2 → hidapi → libudev. The conda-forge
-    # libudev package requires glibc >= 2.25, which is incompatible with the glibc 2.17
-    # sysroot targeted by conda-forge linux builds.
-    - skip-fido2-no-libudev.patch
 
 build:
   number: 0
@@ -27,9 +21,6 @@ build:
           # NOTE: LIBCLANG_PATH is needed for bindgen (used by aws-lc-rs)
           # cf. https://github.com/conda-forge/clangdev-feedstock/issues/373 & https://github.com/rust-lang/rust-bindgen/issues/918
           - export LIBCLANG_PATH="$BUILD_PREFIX"/lib
-          # Skip the FIDO2 provider: ctap-hid-fido2 → hidapi → libudev requires glibc >= 2.25,
-          # incompatible with conda-forge's glibc 2.17 sysroot.
-          - export RUSTFLAGS="$RUSTFLAGS --cfg fnox_skip_fido2"
           - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bins
           # generate shell completions
           - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
@@ -41,7 +32,6 @@ build:
           # bindgen expects libclang.dll; conda-forge only provides versioned DLLs on Windows
           - powershell -Command "cp (gci $env:BUILD_PREFIX\Library\bin\libclang-*.dll)[0] $env:BUILD_PREFIX\Library\bin\libclang.dll"
           - set "LIBCLANG_PATH=%BUILD_PREFIX%\Library\bin"
-          - set "RUSTFLAGS=%RUSTFLAGS% --cfg fnox_skip_fido2"
           - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bins
           # generate shell completions
           - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
