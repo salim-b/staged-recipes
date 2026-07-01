@@ -57,6 +57,8 @@ requirements:
     - perl
     - pkg-config
   host:
+    - if: unix
+      then: libudev
     - usage
 
 tests:
