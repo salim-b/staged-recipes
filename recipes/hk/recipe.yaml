@@ -1,0 +1,91 @@
+context:
+  version: "1.48.0"
+
+package:
+  name: hk
+  version: ${{ version }}
+
+source:
+  url: https://github.com/jdx/hk/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 956937984f48b83226f411f003f9f83da5e5f071922d48d7b8fce0900ede7a86
+
+build:
+  number: 0
+  script:
+    content:
+      - if: unix
+        then:
+          # `usage-cli` (providing the `usage` binary) is only needed at build time to
+          # generate hk's shell completion scripts (`hk completion <shell>` shells out to it),
+          # it's not a runtime dependency of hk itself.
+          - cargo install usage-cli --locked --root="$SRC_DIR"/usage-cli-build-tool
+          - export PATH="$SRC_DIR"/usage-cli-build-tool/bin:"$PATH"
+          - cargo auditable install --path=. --root="$PREFIX" --no-track --locked --bin=hk
+          - mkdir -p "$PREFIX"/share/bash-completion/completions "$PREFIX"/share/fish/vendor_completions.d "$PREFIX"/share/zsh/site-functions
+          - '"$PREFIX"/bin/hk completion bash > "$PREFIX"/share/bash-completion/completions/hk'
+          - '"$PREFIX"/bin/hk completion fish > "$PREFIX"/share/fish/vendor_completions.d/hk.fish'
+          - '"$PREFIX"/bin/hk completion zsh  > "$PREFIX"/share/zsh/site-functions/_hk'
+      - if: win
+        then:
+          - cargo install usage-cli --locked --root="%SRC_DIR%"\usage-cli-build-tool
+          - set "PATH=%SRC_DIR%\usage-cli-build-tool\bin;%PATH%"
+          - cargo auditable install --path=. --root="%LIBRARY_PREFIX%" --no-track --locked --bin=hk
+          - mkdir "%LIBRARY_PREFIX%"\share\bash-completion\completions
+          - mkdir "%LIBRARY_PREFIX%"\share\fish\vendor_completions.d
+          - mkdir "%LIBRARY_PREFIX%"\share\zsh\site-functions
+          - '"%LIBRARY_BIN%"\hk.exe completion bash > "%LIBRARY_PREFIX%\share\bash-completion\completions\hk"'
+          - '"%LIBRARY_BIN%"\hk.exe completion fish > "%LIBRARY_PREFIX%\share\fish\vendor_completions.d\hk.fish"'
+          - '"%LIBRARY_BIN%"\hk.exe completion zsh  > "%LIBRARY_PREFIX%\share\zsh\site-functions\_hk"'
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - pkg-config
+    - if: linux
+      then: make
+  host:
+    - zlib
+
+tests:
+  - script:
+      - hk --help
+      - hk --version
+  - package_contents:
+      bin:
+        - hk
+      files:
+        - if: unix
+          then:
+            - share/bash-completion/completions/hk
+            - share/fish/vendor_completions.d/hk.fish
+            - share/zsh/site-functions/_hk
+        - if: win
+          then:
+            - Library/share/bash-completion/completions/hk
+            - Library/share/fish/vendor_completions.d/hk.fish
+            - Library/share/zsh/site-functions/_hk
+      strict: true
+
+about:
+  summary: A tool for managing git hooks
+  description: |
+    hk is a fast, polyglot git hooks manager. It lets you define git hooks
+    (e.g. pre-commit, pre-push) in a single hk.pkl configuration file, running
+    linters and formatters (like eslint, prettier, ruff, shellcheck, etc.) only
+    on the files that are staged/changed, in parallel, with dependency-aware
+    step ordering.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://hk.jdx.dev
+  repository: https://github.com/jdx/hk
+
+extra:
+  recipe-maintainers:
+    - salim-b
