@@ -1,0 +1,125 @@
+context:
+  version: "0.6.8"
+
+package:
+  name: microsandbox
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/superradcompany/microsandbox/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: c8b78a9a5443d0fc8f720564690ee49dec30b72c80d25bf135c0f57c26a172a7
+  - if: linux and x86_64
+    then:
+      - url: https://github.com/superradcompany/microsandbox/releases/download/v${{ version }}/agentd-x86_64
+        sha256: a4b4265c0e3348bf7fd305593f3779e222afadf0cf8acb8c9b7c3a40393914d5
+        target_directory: build
+  - if: linux and aarch64
+    then:
+      - url: https://github.com/superradcompany/microsandbox/releases/download/v${{ version }}/agentd-aarch64
+        sha256: d2c83a1c078583f147a8689bf9ae4d45b631839096c5d685b50528a0d099059d
+        target_directory: build
+  - if: win and x86_64
+    then:
+      - url: https://github.com/superradcompany/microsandbox/releases/download/v${{ version }}/agentd-x86_64
+        sha256: a4b4265c0e3348bf7fd305593f3779e222afadf0cf8acb8c9b7c3a40393914d5
+        target_directory: build
+  - if: win and aarch64
+    then:
+      - url: https://github.com/superradcompany/microsandbox/releases/download/v${{ version }}/agentd-aarch64
+        sha256: d2c83a1c078583f147a8689bf9ae4d45b631839096c5d685b50528a0d099059d
+        target_directory: build
+  - if: osx and aarch64
+    then:
+      - url: https://github.com/superradcompany/microsandbox/releases/download/v${{ version }}/agentd-aarch64
+        sha256: d2c83a1c078583f147a8689bf9ae4d45b631839096c5d685b50528a0d099059d
+        target_directory: build
+  - if: linux
+    then:
+      - url: https://github.com/stevegrubb/libcap-ng/archive/refs/tags/v0.9.3.tar.gz
+        sha256: fe11ebbb55904763b3532f19069f13ec319042634620180a03bd4653d301563e
+        target_directory: libcap-ng
+
+build:
+  skip:
+    - match(target_platform, "osx-64")
+    - match(target_platform, "win-32")
+    - match(target_platform, "linux-32")
+    - match(target_platform, "linux-armv7l")
+    - match(target_platform, "linux-ppc64le")
+    - match(target_platform, "linux-s390x")
+    - match(target_platform, "linux-riscv64")
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_LTO: "thin"
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_NET_RETRY: "10"
+      CARGO_HTTP_TIMEOUT: "120"
+      CARGO_HTTP_MULTIPLEXING: "false"
+    content:
+      - if: linux
+        then:
+          - mkdir -p build
+          - cp build/agentd-x86_64 build/agentd
+          - cd libcap-ng
+          - ./autogen.sh
+          - ./configure --prefix="$BUILD_PREFIX" --without-python3 --disable-shared --enable-static
+          - make -j${CPU_COUNT}
+          - make install
+          - cd ..
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-default-features --features net,ssh --path crates/cli --root="$PREFIX" --no-track --bins
+          - cargo auditable install --locked --path crates/metrics-collector --root="$PREFIX" --no-track --bins
+      - if: win
+        then:
+          - cargo auditable install --locked --no-default-features --features net,ssh --path crates/cli --root="%LIBRARY_PREFIX%" --no-track --bins
+          - cargo auditable install --locked --no-default-features --features net,ssh --path crates/metrics-collector --root="%LIBRARY_PREFIX%" --no-track --bins
+      - cargo-bundle-licenses --format=yaml --output=./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+    - cmake
+    - make
+    - pkg-config
+    - if: linux
+      then:
+        - autoconf
+        - automake
+        - libtool
+
+tests:
+  - script:
+      - msb --help
+      - msb --version
+      - msb-metrics --help
+      - msb-metrics --version
+  - package_contents:
+      bin:
+        - msb
+        - msb-metrics
+      strict: true
+
+about:
+  summary: Easy, fast, local-first microVM runtime and library
+  description: |
+    Microsandbox runs untrusted workloads inside fast, local microVMs. The
+    `msb` CLI provides Docker-like workflows for creating and managing
+    sandboxes backed by hardware isolation, with support for OCI images,
+    networking, volumes, snapshots, logs, metrics, and SSH.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://microsandbox.dev
+  documentation: https://docs.microsandbox.dev
+  repository: https://github.com/superradcompany/microsandbox
+
+extra:
+  recipe-maintainers:
+    - salim-b
