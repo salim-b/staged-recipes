@@ -1,0 +1,57 @@
+context:
+  version: "0.16.2"
+
+package:
+  name: pgroll
+  version: ${{ version }}
+
+source:
+  url: https://github.com/xataio/pgroll/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: d944b31c6a4b90eeb170db249c1a012b85663ff25f438f007068efc76e4546a7
+
+build:
+  number: 0
+  script:
+    - go-licenses save . --save_path=library_licenses
+    - if: unix
+      then:
+        - go build -o "$PREFIX/bin/pgroll" -tags=netgo,osusergo -ldflags="-s -w -X github.com/xataio/pgroll/cmd.Version=${{ version }}" -trimpath .
+    - if: win
+      then:
+        - go build -o "%LIBRARY_BIN%\pgroll.exe" -tags=netgo,osusergo -ldflags="-s -w -X github.com/xataio/pgroll/cmd.Version=${{ version }}" -trimpath .
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('go-cgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - pgroll --help
+      - pgroll --version
+  - package_contents:
+      bin:
+        - pgroll
+      strict: true
+
+about:
+  summary: Zero-downtime, reversible schema migrations for Postgres
+  description: |
+    pgroll is an open source command-line tool that offers safe and reversible
+    schema migrations for PostgreSQL by serving multiple schema versions
+    simultaneously. It applies changes without locking the database and keeps
+    old and new schema versions working simultaneously, even when breaking
+    changes are being made.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - library_licenses/
+  homepage: https://pgroll.com
+  documentation: https://pgroll.com/docs
+  repository: https://github.com/xataio/pgroll
+
+extra:
+  recipe-maintainers:
+    - salim-b
