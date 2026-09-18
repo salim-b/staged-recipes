@@ -1,0 +1,59 @@
+context:
+  version: "0.1.11"
+
+package:
+  name: pandoc-katex
+  version: ${{ version }}
+
+source:
+  url: https://github.com/xu-cheng/pandoc-katex/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 9f37de80d2f36c18698ff66f2558ba8d4e973f9d4b1b7aeb4f7e66ac057a7fe9
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path .
+        else:
+          - cargo auditable install --locked --no-track --bins --root %LIBRARY_PREFIX% --path .
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+
+tests:
+  - script:
+      - pandoc-katex --help
+      - pandoc-katex --version
+  - package_contents:
+      bin:
+        - pandoc-katex
+      strict: true
+
+about:
+  homepage: https://github.com/xu-cheng/pandoc-katex
+  summary: Pandoc filter to render math equations using KaTeX
+  description: |
+    A pandoc filter to render math equations using KaTeX. It is powered by
+    the katex Rust crate.
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+    - THIRDPARTY.yml
+  documentation: https://github.com/xu-cheng/pandoc-katex
+  repository: https://github.com/xu-cheng/pandoc-katex
+
+extra:
+  recipe-maintainers:
+    - salim-b
